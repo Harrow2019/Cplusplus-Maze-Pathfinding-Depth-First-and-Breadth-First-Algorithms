@@ -1,0 +1,159 @@
+#include <iostream>
+#include <vector>
+#include <queue>
+#include <stack>
+
+using namespace std;
+
+const int ROWS = 10;
+const int COLS = 10;
+
+// 定义迷宫的二维数组表示
+int maze[ROWS][COLS] = {
+    {0, 1, 0, 0, 0, 1, 0, 1, 0, 0},
+    {0, 0, 1, 1, 0, 0, 0, 1, 0, 1},
+    {0, 0, 0, 1, 0, 1, 0, 0, 0, 1},
+    {1, 0, 0, 0, 0, 0, 1, 0, 1, 0},
+    {0, 1, 0, 1, 0, 1, 0, 0, 0, 0},
+    {1, 0, 0, 0, 0, 1, 0, 1, 0, 0},
+    {0, 0, 0, 1, 0, 0, 0, 0, 1, 0},
+    {0, 1, 0, 1, 0, 1, 0, 0, 0, 0},
+    {0, 0, 0, 0, 0, 0, 1, 1, 0, 1},
+    {0, 1, 0, 1, 0, 1, 0, 0, 0, 0}
+};
+
+// 定义迷宫中的位置结构
+struct Position {
+    int row;
+    int col;
+
+    Position(int r, int c) : row(r), col(c) {}
+};
+
+// 检查位置是否在迷宫内且是可通行的空格
+bool isValidPosition(int row, int col) {
+    return row >= 0 && row < ROWS && col >= 0 && col < COLS && maze[row][col] == 0;
+}
+
+// 深度优先搜索 (DFS) 寻路算法
+bool DFS(Position start, Position end, vector<Position>& path, vector<vector<bool>>& visited) {
+    int row = start.row;
+    int col = start.col;
+
+    if (!isValidPosition(row, col) || visited[row][col])
+        return false;
+
+    // 标记当前位置为已访问
+    visited[row][col] = true;
+    
+    // 如果当前位置是终点，则找到了路径
+    if (row == end.row && col == end.col) {
+        path.push_back(Position(row, col));
+        return true;
+    }
+
+    // 递归尝试四个方向的移动
+    if (DFS(Position(row + 1, col), end, path, visited) ||
+        DFS(Position(row - 1, col), end, path, visited) ||
+        DFS(Position(row, col + 1), end, path, visited) ||
+        DFS(Position(row, col - 1), end, path, visited)) {
+        path.push_back(Position(row, col));
+        return true;
+    }
+
+    return false;
+}
+
+// 广度优先搜索 (BFS) 寻路算法
+bool BFS(Position start, Position end, vector<Position>& path) {
+    vector<vector<bool>> visited(ROWS, vector<bool>(COLS, false));
+    queue<Position> positionsQueue;
+    vector<Position> directions = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
+
+    positionsQueue.push(start);
+    visited[start.row][start.col] = true;
+
+    vector<vector<Position>> prev(ROWS, vector<Position>(COLS, Position(-1, -1)));
+
+    while (!positionsQueue.empty()) {
+        Position current = positionsQueue.front();
+        positionsQueue.pop();
+
+        if (current.row == end.row && current.col == end.col) {
+            // 构造路径向量
+            Position temp = end;
+            while (!(temp.row == start.row && temp.col == start.col)) {
+                path.push_back(temp);
+                temp = prev[temp.row][temp.col];
+            }
+            path.push_back(start);
+            reverse(path.begin(), path.end());
+            return true;
+        }
+
+        for (const Position& direction : directions) {
+            int newRow = current.row + direction.row;
+            int newCol = current.col + direction.col;
+            if (isValidPosition(newRow, newCol) && !visited[newRow][newCol]) {
+                positionsQueue.push(Position(newRow, newCol));
+                visited[newRow][newCol] = true;
+                prev[newRow][newCol] = current;
+            }
+        }
+    }
+
+    return false;
+}
+
+
+/*
+这段代码实现了广度优先搜索（BFS）寻路算法。我会一步一步分析代码的工作流程：
+
+首先，你创建了一个 visited 矩阵，用来标记已访问的位置，初始化为全 false。创建一个队列 positionsQueue 用于存储待访问的位置。定义四个可能的移动方向 directions。
+
+将起始位置 start 加入到 positionsQueue 中，并将其标记为已访问。
+
+创建一个 prev 二维数组，用来记录每个位置的前驱位置，初始化为 Position(-1, -1)。
+
+进入主要的循环，该循环将在队列为空时结束。每次从队列中取出一个位置 current。
+
+检查 current 是否为目标位置 end，如果是，就根据 prev 数组构造出路径向量 path。
+
+如果 current 不是目标位置，就遍历四个可能的移动方向，并计算新的行列坐标 newRow 和 newCol。
+
+如果新坐标在合法范围内，并且该位置未被访问过，就将新位置加入到 positionsQueue 中，标记为已访问，并将 current 设置为新位置的前驱。
+
+循环直到 positionsQueue 为空。
+
+如果队列为空，表示没有找到路径，返回 false。
+
+如果找到路径，路径向量 path 存储了从起始位置到目标位置的一条最短路径。路径是反向构建的，因此最后通过 reverse 函数将路径反转，使其按照从起始到目标的顺序。
+
+该算法的核心思想是利用队列实现广度优先搜索，逐层遍历，确保找到的路径是最短路径。prev 数组记录了每个位置的前驱位置，通过回溯可以构建出路径。
+
+请注意，这段代码的前提是定义了适当的 Position 结构体和 isValidPosition 函数，同时确保 ROWS 和 COLS 的值是正确的。
+*/
+
+int main() {
+    Position start(0, 0);
+    Position end(9, 9);
+    vector<Position> path;
+
+    cout << "DFS Path: ";
+    vector<vector<bool>> visited(ROWS, vector<bool>(COLS, false));
+    DFS(start, end, path, visited);
+    for (const auto& position : path) {
+        cout << "(" << position.row << ", " << position.col << ") ";
+    }
+    cout << endl;
+
+    path.clear();
+    cout << "BFS Path: ";
+    BFS(start, end, path);
+    for (const auto& position : path) {
+        cout << "(" << position.row << ", " << position.col << ") ";
+    }
+    cout << endl;
+
+    return 0;
+}
